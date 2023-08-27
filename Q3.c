@@ -1,4 +1,4 @@
-//Time Complexity : O(n^2!) & Space Complexity : O(n)
+//Time Complexity : O(n^2) & Space Complexity : O(n)
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
