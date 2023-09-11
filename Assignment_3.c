@@ -1,135 +1,165 @@
 #include <stdio.h>
-#include <stdbool.h>
+#include<stdlib.h>
+#define MAX_MatrixS 100
 
-#define MAX_NODES 100
+typedef struct {
+    int row;
+    int col;
+    int value;
+} Matrix;
 
-unsigned char adjacencyMatrix[MAX_NODES][MAX_NODES / 8 + 1];
-
-void insertEdge(int x, int y) {
-    adjacencyMatrix[x][y / 8] |= (1 << (y % 8));
-    adjacencyMatrix[y][x / 8] |= (1 << (x % 8));
-}
-
-void deleteEdge(int x, int y) {
-    adjacencyMatrix[x][y / 8] &= ~(1 << (y % 8));
-    adjacencyMatrix[y][x / 8] &= ~(1 << (x % 8));
-}
-
-bool isNeighbor(int x, int y) {
-    return (adjacencyMatrix[x][y / 8] & (1 << (y % 8))) != 0;
-}
-
-void getNeighbors(int n, int numNodes) {
-    printf("Neighbors of node %d: ", n);
-    for (int i = 0; i < numNodes; i++) {
-        if (isNeighbor(n, i)) {
-            printf("%d ", i);
-        }
-    }
-    printf("\n");
-}
-
-
-bool DFS(int x, int y, int visited[], int path[], int numNodes) {
-    visited[x] = 1;
-    path[path[0] + 1] = x;
-    path[0]++;
-
-    if (x == y) {
-        for (int i = 1; i <= path[0]; i++) {
-            printf("%d ", path[i]);
-        }
-        printf("\n");
-        return true;
-    }
-
-    for (int i = 0; i < numNodes; i++) {
-        if (isNeighbor(x, i) && !visited[i]) {
-            if (DFS(i, y, visited, path, numNodes)) {
-                return true;
+void addSparseMatrices(Matrix A[], Matrix B[], int m, int n, Matrix C[]) {
+    int aPos = 0, bPos = 0, cPos = 0;
+    while (aPos < m || bPos < n) {
+        if (aPos >= m) {
+            C[cPos++] = B[bPos++];
+        } else if (bPos >= n) {
+            C[cPos++] = A[aPos++];
+        } else {
+            if (A[aPos].row < B[bPos].row || (A[aPos].row == B[bPos].row && A[aPos].col < B[bPos].col)) {
+                C[cPos++] = A[aPos++];
+            } else if (A[aPos].row > B[bPos].row || (A[aPos].row == B[bPos].row && A[aPos].col > B[bPos].col)) {
+                C[cPos++] = B[bPos++];
+            } else {
+                C[cPos].row = A[aPos].row;
+                C[cPos].col = A[aPos].col;
+                C[cPos++].value = A[aPos++].value + B[bPos++].value;
             }
         }
     }
-
-    visited[x] = 0;
-    path[0]--;
-    return false;
 }
 
-
-void Path(int x, int y, int numNodes) {
-    int visited[MAX_NODES] = {0};
-    int path[MAX_NODES + 1] = {0};
-    if (!DFS(x, y, visited, path, numNodes)) {
-        printf("No path from %d to %d\n", x, y);
-    }
-}
-
-
-int maxDegree(int numNodes) {
-    int maxDegree = 0;
-    for (int i = 0; i < numNodes; i++) {
-        int degree = 0;
-        for (int j = 0; j < numNodes; j++) {
-            if (isNeighbor(i, j)) {
-                degree++;
+void subtractSparseMatrices(Matrix A[], Matrix B[], int m, int n, Matrix C[]) {
+    int aPos = 0, bPos = 0, cPos = 0;
+    while (aPos < m || bPos < n) {
+        if (aPos >= m) {
+            C[cPos++] = B[bPos++];
+        } else if (bPos >= n) {
+            C[cPos++] = A[aPos++];
+        } else {
+            if (A[aPos].row < B[bPos].row || (A[aPos].row == B[bPos].row && A[aPos].col < B[bPos].col)) {
+                C[cPos++] = A[aPos++];
+            } else if (A[aPos].row > B[bPos].row || (A[aPos].row == B[bPos].row && A[aPos].col > B[bPos].col)) {
+                C[cPos++] = B[bPos++];
+            } else {
+                C[cPos].row = A[aPos].row;
+                C[cPos].col = A[aPos].col;
+                C[cPos++].value = A[aPos++].value - B[bPos++].value;
             }
         }
-        if (degree > maxDegree) {
-            maxDegree = degree;
-        }
     }
-    return maxDegree;
 }
 
+void multiplySparseMatrices(Matrix A[], Matrix B[], int m, int n, int p, Matrix C[]) {
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < p; j++) {
+            C[i * p + j].row = i;
+            C[i * p + j].col = j;
+            C[i * p + j].value = 0;
+        }
+    }
 
-int minDegree(int numNodes) {
-    int minDegree = numNodes;
-    for (int i = 0; i < numNodes; i++) {
-        int degree = 0;
-        for (int j = 0; j < numNodes; j++) {
-            if (isNeighbor(i, j)) {
-                degree++;
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k < p; k++) {
+                C[i * p + k].value += A[i * n + j].value * B[j * p + k].value;
             }
         }
-        if (degree < minDegree) {
-            minDegree = degree;
-        }
     }
-    return minDegree;
+}
+void powerSparseMatrix(Matrix A[], int m, int n, int exponent, Matrix result[]) {
+    if (exponent == 0) {
+        for (int i = 0; i < m; i++) {
+            result[i].row = A[i].row;
+            result[i].col = A[i].col;
+            result[i].value = (A[i].row == A[i].col) ? 1 : 0;
+        }
+    } else if (exponent == 1) {
+        // A^1 = A
+        for (int i = 0; i < m; i++) {
+            result[i] = A[i];
+        }
+    } else {
+        Matrix *temp = (Matrix *)malloc(MAX_MatrixS * sizeof(Matrix));
+        if (temp == NULL) {
+            printf("Memory allocation failed.\n");
+            return;
+        }
+
+        powerSparseMatrix(A, m, n, exponent - 1, temp);
+        multiplySparseMatrices(A, temp, m, n, n, result);
+
+        free(temp);
+    }
 }
 
-
-float avgDegree(int numNodes) {
-    int totalDegree = 0;
-    for (int i = 0; i < numNodes; i++) {
-        int degree = 0;
-        for (int j = 0; j < numNodes; j++) {
-            if (isNeighbor(i, j)) {
-                degree++;
-            }
-        }
-        totalDegree += degree;
-    }
-    return (float)totalDegree / numNodes;
-}
 
 int main() {
-    int numNodes = 5;
+    int m, n, x, y, p;
+    printf("Enter the number of non-zero elements in A: ");
+    scanf("%d", &m);
+    Matrix A[MAX_MatrixS];
+    printf("Enter the elements of A (row col value):\n");
+    for (int i = 0; i < m; i++) {
+        scanf("%d %d %d", &A[i].row, &A[i].col, &A[i].value);
+    }
 
-    insertEdge(1, 3);
-    insertEdge(1, 4);
-    insertEdge(2, 3);
-    insertEdge(2, 4);
-    insertEdge(4, 0);
-    insertEdge(4, 2);
-    
-    getNeighbors(3, numNodes);
-    Path(1, 4, numNodes);
-    
-    printf("Max Degree: %d\n", maxDegree(numNodes));
-    printf("Min Degree: %d\n", minDegree(numNodes));
-    printf("Avg Degree: %.2f\n", avgDegree(numNodes));
+    printf("Enter the number of non-zero elements in B: ");
+    scanf("%d", &n);
+    Matrix B[MAX_MatrixS];
+    printf("Enter the elements of B (row col value):\n");
+    for (int i = 0; i < n; i++) {
+        scanf("%d %d %d", &B[i].row, &B[i].col, &B[i].value);
+    }
+
+    printf("Choose the operation:\n");
+    printf("1. Addition\n");
+    printf("2. Subtraction\n");
+    printf("3. Multiplication\n");
+    printf("4. Calculate (A[k][3])^n\n");
+    int choice;
+    scanf("%d", &choice);
+
+    Matrix result[MAX_MatrixS];
+
+    switch (choice) {
+        case 1:
+            addSparseMatrices(A, B, m, n, result);
+            printf("Resultant Sparse Matrix (row col value):\n");
+            for (int i = 0; i < m + n; i++) {
+                printf("%d %d %d\n", result[i].row, result[i].col, result[i].value);
+            }
+            break;
+        case 2:
+            subtractSparseMatrices(A, B, m, n, result);
+            printf("Resultant Sparse Matrix (row col value):\n");
+            for (int i = 0; i < m + n; i++) {
+                printf("%d %d %d\n", result[i].row, result[i].col, result[i].value);
+            }
+            break;
+        case 3:
+            printf("Enter the number of columns in matrix B: ");
+            scanf("%d", &p);
+            multiplySparseMatrices(A, B, m, n, p, result);
+            printf("Resultant Sparse Matrix (row col value):\n");
+            for (int i = 0; i < m * p; i++) {
+                printf("%d %d %d\n", result[i].row, result[i].col, result[i].value);
+            }
+            break;
+        case 4:
+            printf("Enter the exponent (n) for (A[k][3])^n: ");
+            int exponent;
+            scanf("%d", &exponent);
+            powerSparseMatrix(A, m, 3, exponent, result);
+            printf("Resultant Sparse Matrix (row col value):\n");
+            for (int i = 0; i < m; i++) {
+                printf("%d %d %d\n", result[i].row, result[i].col, result[i].value);
+            }
+            break;
+        default:
+            printf("Invalid choice\n");    
+        
+    }
 
     return 0;
 }
